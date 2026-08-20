@@ -1,0 +1,35 @@
+bundle:
+  name: databricks-app-sample
+  engine: direct
+
+resources:
+  apps:
+    databricks-app-sample:
+      name: databricks-app-sample
+      description: "Minimal FastAPI app with OpenTelemetry auto-instrumentation"
+      source_code_path: .
+      lifecycle:
+        started: true
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: "https://<workspace-host>.azuredatabricks.net"
+      root_path: /Workspace/Shared/databricks-app-sample
+    resources:
+      apps:
+        databricks-app-sample:
+          compute_size: MEDIUM
+          compute_min_instances: 1
+          compute_max_instances: 5
+          config:
+            command: ["opentelemetry-instrument", "python", "app.py"]
+            env:
+              - name: OTEL_TRACES_SAMPLER
+                value: "always_on"
+          telemetry_export_destinations:
+            - unity_catalog:
+                logs_table: "<catalog>.<schema>.otel_logs"
+                metrics_table: "<catalog>.<schema>.otel_metrics"
+                traces_table: "<catalog>.<schema>.otel_spans"
