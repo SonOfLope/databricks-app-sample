@@ -2,34 +2,69 @@ bundle:
   name: databricks-app-sample
   engine: direct
 
+variables:
+  entra_audience:
+    description: client id of this environment's API registration, from terraform output api_client_ids
+
 resources:
   apps:
     databricks-app-sample:
-      name: databricks-app-sample
-      description: "Minimal FastAPI app with OpenTelemetry auto-instrumentation"
+      description: "Private app gateway PoC: proxy identity and vendor token caller models"
       source_code_path: .
       lifecycle:
         started: true
+      config:
+        command: ["python", "app.py"]
+        env:
+          - name: APP_ENV
+            value: ${bundle.target}
+          - name: ENTRA_TENANT_ID
+            value: "65b6be73-2104-4ff4-899f-5bff3196f3d1"
+          - name: ENTRA_AUDIENCE
+            value: ${var.entra_audience}
+          - name: ENDPOINT_NAME
+            value: projects/poc/branches/production/endpoints/primary
+          - name: PGHOST
+            value: ep-soft-wildflower-e6omumky.database.canadacentral.azuredatabricks.net
+      resources:
+        - name: lakebase
+          description: "PoC Lakebase production branch"
+          postgres:
+            branch: projects/poc/branches/production
+            database: projects/poc/branches/production/databases/databricks-postgres
+            permission: CAN_CONNECT_AND_CREATE
+      permissions:
+        # APIM's managed identity, registered in the Databricks account by the infra repo.
+        - service_principal_name: e8d1aaff-15ad-4d1c-b460-e768545c90a9
+          level: CAN_USE
 
 targets:
-  dev:
-    default: true
+  arctiq-staging:
     workspace:
-      host: "https://<workspace-host>.azuredatabricks.net"
-      root_path: /Workspace/Shared/databricks-app-sample
+      host: https://adb-7405608859137005.5.azuredatabricks.net
+      root_path: /Workspace/Shared/databricks-app-sample-staging
+    variables:
+      entra_audience: a1fa6628-fc0d-4a94-9003-aae7a99fcf04
     resources:
       apps:
         databricks-app-sample:
+          name: app-sample-staging
           compute_size: MEDIUM
-          compute_min_instances: 1
-          compute_max_instances: 5
-          config:
-            command: ["opentelemetry-instrument", "python", "app.py"]
-            env:
-              - name: OTEL_TRACES_SAMPLER
-                value: "always_on"
-          telemetry_export_destinations:
-            - unity_catalog:
-                logs_table: "<catalog>.<schema>.otel_logs"
-                metrics_table: "<catalog>.<schema>.otel_metrics"
-                traces_table: "<catalog>.<schema>.otel_spans"
+          permissions:
+            - group_name: poc-app-users-staging
+              level: CAN_USE
+
+  arctiq-prod:
+    workspace:
+      host: https://adb-7405608859137005.5.azuredatabricks.net
+      root_path: /Workspace/Shared/databricks-app-sample-prod
+    variables:
+      entra_audience: 59430733-7db1-4d42-a7e0-825fe48f7432
+    resources:
+      apps:
+        databricks-app-sample:
+          name: app-sample-prod
+          compute_size: MEDIUM
+          permissions:
+            - group_name: poc-app-users-prod
+              level: CAN_USE

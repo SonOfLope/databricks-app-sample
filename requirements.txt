@@ -45,3 +45,7 @@ uvloop==0.22.1
 watchfiles==1.2.0
 websockets==17.0.1
 wrapt==2.3.0
+PyJWT==2.10.1
+cryptography==46.0.5
+databricks-sdk==0.128.0
+psycopg[binary]==3.3.4
