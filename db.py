@@ -8,6 +8,7 @@ Catalog publishes into the same database.
 
 import logging
 import os
+import re
 import threading
 import time
 
@@ -19,6 +20,10 @@ ENDPOINT = os.environ.get("ENDPOINT_NAME", "")
 HOST = os.environ.get("PGHOST", "")
 DBNAME = os.environ.get("PGDATABASE", "databricks_postgres")
 SYNCED_TABLE = os.environ.get("SYNCED_TABLE", "coverage_sites_synced")
+# Both environments share one database, and whichever app creates the ledger
+# owns it, so each gets its own schema rather than fighting over one.
+APP_ENV = os.environ.get("APP_ENV", "unset")
+SCHEMA = os.environ.get("LEDGER_SCHEMA") or "app_" + re.sub(r"[^a-z0-9]+", "_", APP_ENV.lower())
 
 _lock = threading.Lock()
 _token = {"value": "", "expires": 0.0}
@@ -46,9 +51,9 @@ def connect():
                            password=_credential(), sslmode="require", connect_timeout=10)
 
 
-DDL = """
-create schema if not exists app;
-create table if not exists app.callers (
+DDL = f"""
+create schema if not exists {SCHEMA};
+create table if not exists {SCHEMA}.callers (
   id bigserial primary key,
   seen_at timestamptz not null default now(),
   identity text not null,
@@ -57,7 +62,7 @@ create table if not exists app.callers (
   route text not null,
   environment text not null
 );
-create index if not exists callers_seen_at on app.callers (seen_at desc);
+create index if not exists callers_seen_at on {SCHEMA}.callers (seen_at desc);
 """
 
 
@@ -75,7 +80,7 @@ def record(identity: str, kind: str, model: str, route: str, environment: str) -
     try:
         with connect() as conn:
             conn.execute(
-                "insert into app.callers (identity, kind, model, route, environment) values (%s,%s,%s,%s,%s)",
+                f"insert into {SCHEMA}.callers (identity, kind, model, route, environment) values (%s,%s,%s,%s,%s)",
                 (identity, kind, model, route, environment))
     except Exception as exc:
         log.warning("caller not recorded: %s", exc)
@@ -86,7 +91,7 @@ def callers(limit: int = 25) -> list[dict]:
         return []
     with connect() as conn:
         rows = conn.execute(
-            "select identity, kind, model, route, environment, seen_at from app.callers order by seen_at desc limit %s",
+            f"select identity, kind, model, route, environment, seen_at from {SCHEMA}.callers order by seen_at desc limit %s",
             (limit,)).fetchall()
     return [{"identity": r[0], "kind": r[1], "model": r[2], "route": r[3], "environment": r[4],
              "seen_at": r[5].isoformat()} for r in rows]
@@ -97,7 +102,7 @@ def caller_totals() -> list[dict]:
         return []
     with connect() as conn:
         rows = conn.execute(
-            "select identity, kind, count(*), max(seen_at) from app.callers group by identity, kind order by 3 desc"
+            f"select identity, kind, count(*), max(seen_at) from {SCHEMA}.callers group by identity, kind order by 3 desc"
         ).fetchall()
     return [{"identity": r[0], "kind": r[1], "calls": r[2], "last_seen": r[3].isoformat()} for r in rows]
 
