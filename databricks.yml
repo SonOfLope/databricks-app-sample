@@ -14,7 +14,7 @@ resources:
       lifecycle:
         started: true
       config:
-        command: ["python", "app.py"]
+        command: ["opentelemetry-instrument", "python", "app.py"]
         env:
           - name: APP_ENV
             value: ${bundle.target}
@@ -26,6 +26,10 @@ resources:
             value: projects/poc/branches/production/endpoints/primary
           - name: PGHOST
             value: ep-soft-wildflower-e6omumky.database.canadacentral.azuredatabricks.net
+          - name: SYNCED_TABLE
+            value: coverage_sites_synced
+          - name: OTEL_TRACES_SAMPLER
+            value: always_on
       resources:
         - name: lakebase
           description: "PoC Lakebase production branch"
@@ -33,6 +37,13 @@ resources:
             branch: projects/poc/branches/production
             database: projects/poc/branches/production/databases/databricks-postgres
             permission: CAN_CONNECT_AND_CREATE
+      # The Apps update API creates these tables if absent and grants the app's
+      # service principal access to them on every deploy.
+      telemetry_export_destinations:
+        - unity_catalog:
+            logs_table: dbw_dbx_private_app_poc.poc.otel_logs
+            metrics_table: dbw_dbx_private_app_poc.poc.otel_metrics
+            traces_table: dbw_dbx_private_app_poc.poc.otel_spans
       permissions:
         # APIM's managed identity, registered in the Databricks account by the infra repo.
         - service_principal_name: e8d1aaff-15ad-4d1c-b460-e768545c90a9
