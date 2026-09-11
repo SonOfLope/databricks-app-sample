@@ -44,7 +44,7 @@ targets:
       host: https://adb-7405608859137005.5.azuredatabricks.net
       root_path: /Workspace/Shared/databricks-app-sample-staging
     variables:
-      entra_audience: a1fa6628-fc0d-4a94-9003-aae7a99fcf04
+      entra_audience: d8f5a71e-458e-4a2b-8d68-a6fa8a9d5b34
     resources:
       apps:
         databricks-app-sample:
@@ -59,7 +59,7 @@ targets:
       host: https://adb-7405608859137005.5.azuredatabricks.net
       root_path: /Workspace/Shared/databricks-app-sample-prod
     variables:
-      entra_audience: 59430733-7db1-4d42-a7e0-825fe48f7432
+      entra_audience: cdbd68ba-5495-4eeb-bc3d-08935b351cbc
     resources:
       apps:
         databricks-app-sample:
