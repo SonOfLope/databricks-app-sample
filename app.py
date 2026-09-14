@@ -87,6 +87,33 @@ def api_db():
     return {"env": APP_ENV, "current_user": row[0], "server_addr": row[1], "host": db.HOST, "version": row[2]}
 
 
+@app.get("/api/egress")
+def api_egress(request: Request, url: str = "https://login.microsoftonline.com/common/discovery/keys"):
+    """Ask the app what it can reach from where it runs. A name that resolves
+    only inside the serverless network proves the traffic took a private path,
+    since it has no public DNS record at all."""
+    import socket
+    import time
+    from urllib.parse import urlparse
+
+    import httpx
+
+    host = urlparse(url).hostname or ""
+    try:
+        resolved = socket.gethostbyname(host)
+    except Exception as exc:
+        resolved = f"unresolved: {type(exc).__name__}"
+    started = time.time()
+    try:
+        with httpx.Client(timeout=10, verify=False) as client:
+            r = client.get(url)
+        outcome, status = "reached", r.status_code
+    except Exception as exc:
+        outcome, status = f"{type(exc).__name__}: {str(exc)[:120]}", None
+    return {"env": APP_ENV, "url": url, "host": host, "resolved": resolved,
+            "status": status, "outcome": outcome, "seconds": round(time.time() - started, 3)}
+
+
 @app.get("/api/callers")
 def api_callers():
     return {"env": APP_ENV, "totals": db.caller_totals(), "recent": db.callers()}

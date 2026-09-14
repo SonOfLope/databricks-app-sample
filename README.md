@@ -8,6 +8,7 @@ Minimal FastAPI app for Databricks Apps used to prove two ways a caller can reac
 | `GET /api/data` | Vendor token. Caller (a machine) sends a token carrying the `integration` app role; APIM calls the app as its own managed identity and forwards the caller's token in `X-Vendor-Token`. Also works without APIM when the caller holds its own Databricks token. | The app (`entra_auth.py`: issuer, audience `ENTRA_AUDIENCE`, role) | The validated claims |
 | `GET /api/db` | Lakebase over OAuth as the app's own service principal (`ENDPOINT_NAME`, `PGHOST`, `postgres` app resource). Set `LAKEBASE_WORKSPACE_HOST` when the database belongs to another workspace: the credential is minted there instead, and the app's principal needs `workspace-access` and a Postgres role in that workspace | Lakebase | `current_user`, server address |
 | `GET /` | the page itself, rendered by the app | whoever fronts it | the signed in identity, the caller ledger and the synced table |
+| `GET /api/egress` | none beyond the proxy | | what the app can reach from where it runs, with the resolved address. A name with no public DNS record that still answers proves a private path |
 | `GET /health` | none | | liveness |
 
 Tokens for the tests:
