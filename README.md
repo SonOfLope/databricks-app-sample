@@ -7,7 +7,7 @@ Minimal FastAPI app for Databricks Apps used to prove two ways a caller can reac
 | `GET /api/whoami` | Proxy identity. Caller sends a token for the environment's API registration to APIM; APIM exchanges it on-behalf-of for an Azure Databricks token and forwards that. | The Databricks Apps proxy | `X-Forwarded-Email`, `X-Forwarded-User`, `X-Forwarded-Preferred-Username`; token claims shown unverified |
 | `GET /api/data` | Vendor token. Caller (a machine) sends a token carrying the `integration` app role; APIM calls the app as its own managed identity and forwards the caller's token in `X-Vendor-Token`. Also works without APIM when the caller holds its own Databricks token. | The app (`entra_auth.py`: issuer, audience `ENTRA_AUDIENCE`, role) | The validated claims |
 | `GET /api/db` | Lakebase over OAuth as the app's own service principal (`ENDPOINT_NAME`, `PGHOST`, `postgres` app resource) | Lakebase | `current_user`, server address |
-| `GET /`, `GET /health` | none | | |
+| `GET /`, `GET /health` | none | | route list and liveness. The app serves data only; the page people see is served by the gateway |
 
 Tokens for the tests:
 
