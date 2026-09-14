@@ -28,16 +28,11 @@ resources:
             value: ep-soft-wildflower-e6omumky.database.canadacentral.azuredatabricks.net
           - name: SYNCED_TABLE
             value: coverage_sites_synced
-          # Set only when the Lakebase project lives in a different workspace
-          # from this app. Empty means the app's own workspace owns it.
-          - name: LAKEBASE_WORKSPACE_HOST
-            value: ""
-          # Set when Cloudflare Access fronts this app, so the app can verify
-          # the assertion rather than trust a header.
-          - name: CF_ACCESS_TEAM
-            value: ""
-          - name: CF_ACCESS_AUDIENCE
-            value: ""
+          # Three optional variables are deliberately absent rather than empty,
+          # because the API rejects an env var with no value: set
+          # LAKEBASE_WORKSPACE_HOST when the database belongs to another
+          # workspace, and CF_ACCESS_TEAM with CF_ACCESS_AUDIENCE when
+          # Cloudflare Access fronts the app.
           - name: OTEL_TRACES_SAMPLER
             value: always_on
       resources:
