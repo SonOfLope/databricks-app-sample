@@ -23,6 +23,16 @@ JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
 _jwks = jwt.PyJWKClient(JWKS_URL, cache_keys=True, lifespan=3600)
 
 
+def verify(token: str, audience: str | None = None) -> dict:
+    """Validate an Entra token and return its claims. Used for the vendor model
+    and for a user assertion a gateway forwards when it calls as itself."""
+    if not TENANT_ID:
+        raise HTTPException(503, "ENTRA_TENANT_ID is not set")
+    key = _jwks.get_signing_key_from_jwt(token).key
+    return jwt.decode(token, key, algorithms=["RS256"], audience=audience or AUDIENCE,
+                      issuer=ISSUER, options={"require": ["exp", "aud", "iss", "sub"]})
+
+
 def require_role(request: Request, role: str) -> dict:
     if not (TENANT_ID and AUDIENCE):
         raise HTTPException(503, "vendor auth not configured for this environment")

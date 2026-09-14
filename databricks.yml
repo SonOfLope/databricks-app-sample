@@ -32,6 +32,12 @@ resources:
           # from this app. Empty means the app's own workspace owns it.
           - name: LAKEBASE_WORKSPACE_HOST
             value: ""
+          # Set when Cloudflare Access fronts this app, so the app can verify
+          # the assertion rather than trust a header.
+          - name: CF_ACCESS_TEAM
+            value: ""
+          - name: CF_ACCESS_AUDIENCE
+            value: ""
           - name: OTEL_TRACES_SAMPLER
             value: always_on
       resources:
