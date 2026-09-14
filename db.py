@@ -24,6 +24,12 @@ SYNCED_TABLE = os.environ.get("SYNCED_TABLE", "coverage_sites_synced")
 # owns it, so each gets its own schema rather than fighting over one.
 APP_ENV = os.environ.get("APP_ENV", "unset")
 SCHEMA = os.environ.get("LEDGER_SCHEMA") or "app_" + re.sub(r"[^a-z0-9]+", "_", APP_ENV.lower())
+# A Lakebase project is only visible to the workspace that created it, and the
+# app's postgres resource binds to one in the app's own workspace. When the
+# database lives elsewhere, the credential has to be minted by the workspace
+# that owns it: set this to that workspace's URL and the app's own service
+# principal authenticates there instead.
+LAKEBASE_WORKSPACE = os.environ.get("LAKEBASE_WORKSPACE_HOST", "")
 
 _lock = threading.Lock()
 _token = {"value": "", "expires": 0.0}
@@ -33,13 +39,21 @@ def configured() -> bool:
     return bool(ENDPOINT and HOST)
 
 
+def _workspace_client():
+    from databricks.sdk import WorkspaceClient
+
+    if not LAKEBASE_WORKSPACE:
+        return WorkspaceClient()
+    return WorkspaceClient(host=LAKEBASE_WORKSPACE,
+                           client_id=os.environ["DATABRICKS_CLIENT_ID"],
+                           client_secret=os.environ["DATABRICKS_CLIENT_SECRET"])
+
+
 def _credential() -> str:
     with _lock:
         if _token["value"] and time.time() < _token["expires"]:
             return _token["value"]
-        from databricks.sdk import WorkspaceClient
-
-        cred = WorkspaceClient().postgres.generate_database_credential(endpoint=ENDPOINT)
+        cred = _workspace_client().postgres.generate_database_credential(endpoint=ENDPOINT)
         _token["value"] = cred.token
         _token["expires"] = time.time() + 1800
         return _token["value"]
